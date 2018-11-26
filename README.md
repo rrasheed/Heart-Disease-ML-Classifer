@@ -2,6 +2,7 @@
 ## Classification of Heart Disease using a variety of supervised learning classifiers
 
 Authors: Rayhaan Rasheed, Solomon Mekonnen, Sam Aboagye
+
 Date: 11/26/2018
 
 ### Data:
@@ -28,6 +29,6 @@ There are 76 attributes in total, but the literature prefers using only 14 of th
 This project aims to evaluate and compare different classifers using the Heart Disease database. Instead on turning this into a multi-class classification problem, the target values will be changed to either 0 or 1. Any target value that has a value greater or equal to 1 will be a 1 in the new target column; likewise, anything with a 0 will stay 0. The reason for this is to focus on the fundamental issue of whether a patient qualifies for having any sign or heart disease (OnevsAll)
 
 The classifiers used:
-Logistic Regression
-Random Forest
-Support Vector Machine
+Logistic Regression,
+Random Forest,
+& Support Vector Machine
