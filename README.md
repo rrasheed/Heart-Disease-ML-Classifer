@@ -32,3 +32,13 @@ The classifiers used:
 Logistic Regression,
 Random Forest,
 & Support Vector Machine
+
+### References
+[1] Emelia, B. J., MD, ScM, FAHA. et. al (2018). Correction to: Heart Disease and Stroke Statistics—2018 Update: A Report From the American Heart Association. Circulation, 137(12), 67-492. doi:10.1161/cir.0000000000000573
+
+[2] Whitley, D., & Watson, J. P. (1970). Complexity Theory and the No Free Lunch Theorem. Search Methodologies, 317-339. doi:10.1007/0-387-28356-0_11
+
+[3] Bethel, G. B., Rajinikanth, T., PhD, & Raju, S. V., PhD. (2016). A Knowledge driven Approach for Efficient Analysis of Heart Disease Dataset. International Journal of Computer Applications, 147(9), 39-46. doi:10.5120/ijca2016911187
+
+[4] Detrano R (1988), Heart Disease Data Set, V.A. Medical Center, Long Beach, and Cleveland Clinic Foundation, Retrieved from https://archive.ics.uci.edu/ml/datasets/Heart+Disease.
+
