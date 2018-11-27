@@ -42,3 +42,6 @@ Random Forest,
 
 [4] Detrano R (1988), Heart Disease Data Set, V.A. Medical Center, Long Beach, and Cleveland Clinic Foundation, Retrieved from https://archive.ics.uci.edu/ml/datasets/Heart+Disease.
 
+### Acknowledgement
+We would like to acknowledge Dr. Yuxio Huang whose code was very useful in building and evaluating the classifiers 
+
