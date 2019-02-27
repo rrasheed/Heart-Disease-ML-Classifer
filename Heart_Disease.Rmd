@@ -1,0 +1,314 @@
+---
+title: "Comparison of Variable Selection Tecniques in Heart Disease Classification"
+author: "Rayhaan Rasheed"
+date: "12/11/2018"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Outline
+
+  1. Background
+  2. Objective
+  3. Exploratory Data Analysis (EDA)
+  4. Model Evaluation & Selection
+  5. Results
+  6. Conclusion
+
+## Background
+  - Cardiovascular disease is the leading cause of death
+  - According to the American Heart Association, heart disease is the root cause for 1 in every 3 deaths in the United States (AHA,2018)
+  - If doctors can predict heart disease early on, then there may be a chance to prolong a patient’s life and mitigate the negative side effects (Bethel,2016)
+
+
+```{r Data Import, include = FALSE}
+library(data.table)
+library(dplyr)
+library(caTools)
+library(ggplot2)
+library(ggvis)
+library(plyr)
+library(VIM)
+library(e1071)
+library(GGally)
+library(corrplot)
+library(faraway)
+library(fmsb)
+library(gvlma)
+library(broom)
+library(stats)
+library(modelr)
+library(MLmetrics)
+library(ResourceSelection)
+library(pROC)
+library(pscl)
+library(ISLR)
+library(ROCR)
+library(bestglm)
+
+hd <- read.csv("heart.csv")
+
+str(hd)
+View(hd)
+summary(hd)
+
+hd <- na.omit(hd)
+
+View(hd)
+str(hd)
+
+hd1M<-hd%>%filter(target == 1, sex == 0)
+
+
+hd0M<-hd%>%filter(target == 0, sex ==0)
+
+
+
+hd1F<-hd%>%filter(target == 1, sex == 1)
+
+
+hd0F<-hd%>%filter(target == 0, sex ==1)
+
+
+```
+
+## Research Question
+To what extent do Feature Selection techniques affect the performance of a heart disease classifier?
+
+## Data
+  - The data being used is the Heart Disease dataset found in UCI's Machine Learning repository. This dataset was originally geneerated by Dr. Robert Detrano from the VA Medical Center in Long Beach and the Clevland Clinic Foundation. 
+  - There are 76 attributes in total but only 14 are available for public use
+  - The 14 attributes were chosen based on two feature selection methods: Computerized Feature Selection (CFS) and Medical Feature Selection (MFS). (Lohita,2015)
+  
+## Data Description
+```{r, comment=""}
+
+hd_att <- matrix(c( "Age of Patient",
+                    "Male, Female",
+                    "Chest Pain Types",
+                    "Resting Blood Pressure in mmHg",
+                    "Serum Cholesterol in mg/dl",
+                    "Is Fasting Blood Sugar > 120 mg/dl",
+                    "Resting ECG",
+                    "Maximum Heart Rate Achieved",
+                    "Is Chest Pain Exercise Induced",
+                    "ST Depression induced by Exercise",
+                    "Slope of Peak Eercise ST Segment",
+                    "Number of Major Blood Vessels Colored",
+                    "Summary of Heart Condition",
+                    "0=Signs of HD, 1=No Signs of HD"),ncol=1,byrow=TRUE)
+colnames(hd_att) <- c("Description")
+rownames(hd_att) <- c("age",
+                       "sex",
+                       "cp",
+                       "trestbps",
+                       "chol",
+                       "fbs",
+                       "restecg",
+                       "thalach",
+                       "exang",
+                       "oldpeak",
+                       "slope",
+                       "ca",
+                       "thal",
+                       "target")
+hd_att <- as.table(hd_att)
+hd_att
+```
+
+
+***
+
+```{r, fig.align='center', fig.cap="Fig 1: Histogram of Chest Pain Types"}
+# Overlaid histograms
+ggplot(hd, aes(x=cp, fill= as.factor(target))) +
+    geom_histogram(binwidth=.5, alpha=.46, position="identity")
+```
+
+***
+```{r, fig.align='center',fig.cap="Fig 2: Class Distributions for Age"}
+# Density plots with semi-transparent fill
+ggplot(hd, aes(x=age, fill=as.factor(target))) + geom_density(alpha=.3)
+```
+***
+```{r, fig.align='center',fig.cap="Fig 3: Class Distributions for ST Depression"}
+ggplot(hd, aes(x=oldpeak, fill=as.factor(target))) + geom_density(alpha=.3)
+```
+***
+```{r, fig.align='center',fig.cap="Fig 4: Class Distributions for Cholesterol"}
+ggplot(hd, aes(x=chol, fill=as.factor(target))) + geom_density(alpha=.3)
+```
+***
+```{r, fig.align='center', fig.cap= "Fig 5: Correlation Matrix"}
+X<-hd[,1:13]
+res <- cor(X)
+library(corrplot)
+plot.new()
+frame()
+corrplot(res, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45)
+```
+  
+## Method
+Build a set of Logistic Regression Models using each using a different variable selection technique
+
+### **Control**
+The net input contains all of the variables. Will be used as the benchmark
+
+#### **Backward Selection**
+Generate net input by removing unnecessary parametrs from the control model
+
+### **Forward Selection**
+Create an empty et input then continue to add paramters until the best possible model is constructed
+
+
+## **Model Evaluation**
+Based on the "No Free Lunch Theorem", model superiority cannot be determined by the trained model alone. It is determined based on the model's performance on the test data 
+
+Compare models based on various metrics:
+
+- AIC
+- ROC Curve
+- AUC
+- Precision
+- Recall
+
+
+
+```{r Train/Test Split}
+
+set.seed(123)   #  set seed to ensure you always have same random numbers generated
+ind <- sample.split(hd,SplitRatio = 0.7) # splits the data in the ratio mentioned in SplitRatio. After splitting marks these rows as logical TRUE and the the remaining are marked as logical FALSE
+train <- subset(hd,ind ==TRUE) # creates a training dataset named train1 with rows which are marked as TRUE
+test<- subset(hd, ind==FALSE)
+```
+
+```{r Base Logistic Regression, include=FALSE}
+# DEFAULT LOGISTIC MODEL USING ALL THE FEATURES
+hdlogit <- glm(target~., family = binomial(link = "logit"), data = train)
+summary.glm(hdlogit)
+```
+
+```{r Backward Selection, include=FALSE}
+backwards = step(hdlogit,trace=0)
+formula(backwards)
+summary(backwards)
+#Based on the backwards selection formula
+hd_backreg <- glm(target~sex+cp+restecg+oldpeak+ca+thal, family = binomial(link = "logit"), data = train)
+summary(hd_backreg)
+```
+
+```{r Forward Selection, include=FALSE}
+#First create a GLM without any parameters
+nothing <- glm(target ~ 1,family=binomial(link = "logit"),data = train)
+summary(nothing)
+forwards <- step(nothing,scope=list(lower=formula(nothing),upper=formula(hdlogit)), direction="forward")
+formula(forwards)
+summary(forwards)
+hd_fowreg <- glm(target~thal+oldpeak+cp+sex+ca+restecg, family = binomial(link = "logit"), data = train)
+```
+
+## Results
+### Control Formula
+```{r, comment=""}
+formula(hdlogit)
+```
+#### Backwards Selection
+```{r, comment=""}
+formula(backwards)
+```
+##### Forward Selection
+```{r, comment=""}
+formula(forwards)
+```
+
+***
+```{r, fig.align='center', fig.cap="Fig 6: ROC Curve for Control Model"}
+pred.hdlogit <- predict.glm(hdlogit,test,type='response')
+pred.hdlogits <- ifelse(pred.hdlogit> 0.5,1,0)
+hdhit <- mean(pred.hdlogits!=test$target)
+hdhits <- mean(pred.hdlogits!=test$target)
+hdlogit_newpred <- prediction(pred.hdlogit,test$target)
+hdlogit_newpred.performance <- performance(hdlogit_newpred, measure = "tpr",x.measure = "fpr")
+AUC0 <- performance(hdlogit_newpred, measure = "auc")##Produces an AUC=0.885
+Pre0 <- Precision(y_pred=pred.hdlogits, y_true=test$target, positive = "0")
+Re0 <- Recall(y_pred=pred.hdlogits, y_true=test$target, positive = "0")
+F0 <- F1_Score(y_pred=pred.hdlogits, y_true=test$target, positive = "0")
+plot(hdlogit_newpred.performance, main="ROC Curve Using All Parametrs")
+```
+
+***
+```{r, fig.align='center', fig.cap="Fig 7: ROC Curve for Backward Selection Model"}
+pred.backreg <- predict.glm(hd_backreg,test,type='response')
+pred.backregs <- ifelse(pred.backreg> 0.5,1,0)
+backhit <- mean(pred.backregs!=test$target)
+backhits <- mean(pred.backregs!=test$target)
+backhit_newpred <- prediction(pred.backreg,test$target)
+backhit_newpred.performance <- performance(backhit_newpred, measure = "tpr",x.measure = "fpr")
+AUC1 <- performance(backhit_newpred, measure = "auc") ##Produces an AUC=0.881
+Pre1 <- Precision(y_pred=pred.backregs, y_true=test$target, positive = "0")
+Re1 <- Recall(y_pred=pred.backregs, y_true=test$target, positive = "0")
+F1 <- F1_Score(y_pred=pred.backregs, y_true=test$target, positive = "0")
+plot(backhit_newpred.performance, main="ROC Curve Using Backward Selected Parameters")
+```
+
+***
+```{r, fig.align='center', fig.cap="Fig 8: ROC Curve for Forward Selection Model"}
+pred.fowreg <- predict.glm(hd_fowreg,test,type='response')
+pred.fowregs <- ifelse(pred.fowreg> 0.5,1,0)
+fowhit <- mean(pred.fowregs!=test$target)
+fowhits <- mean(pred.fowregs!=test$target)
+fowhit_newpred <- prediction(pred.fowreg,test$target)
+fowhit_newpred.performance <- performance(fowhit_newpred, measure = "tpr",x.measure = "fpr")
+AUC2 <- performance(fowhit_newpred, measure = "auc") ##Produces an AUC=0.881
+Pre2 <- Precision(y_pred=pred.fowregs, y_true=test$target, positive = "0")
+Re2 <- Recall(y_pred=pred.fowregs, y_true=test$target, positive = "0")
+F2 <- F1_Score(y_pred=pred.fowregs, y_true=test$target, positive = "0")
+plot(fowhit_newpred.performance, main="ROC Curve Using Forward Selected Parameters")
+```
+
+## Overview
+```{r Initial Model Comparison, include=FALSE}
+AIC(hdlogit)
+AIC(hd_backreg)
+AIC(hd_fowreg)
+#AIC for the full logit regression is 158.4501 
+#The AIC for hd_backreg, hd_fowreg are both the same with a value of 165.4323
+# Based on the "No Free Lunch" Theorem, superiority of one algorithm is due to the nature of the problems investigated and the test score.  
+```
+
+```{r, comment=""}
+hd_acc <- matrix(c(158.4501,165.4323,165.4323,
+                   .855, .881, .881, 
+                   Pre0, Pre1, Pre2,
+                   Re0,Re1,Re2,
+                   F0,F1,F2),ncol=5,byrow=FALSE)
+colnames(hd_acc) <- c("AIC", "AUC", "Precision","Recall","F1-Score")
+rownames(hd_acc) <- c("Control","Backwards","Forward")
+hd_acc <- as.table(hd_acc)
+hd_acc
+```
+
+Recall calculates how many of the Actual Positives our model capture through labeling it as Positive (True Positive). 
+
+We choose the model with a lower recall and a higher precsison. Thus, we choose the model that is more strict and takes into account the high risk of misdiagnois. 
+
+## Conclusion
+No significant difference between the three models. Most likely due to to the initial feature selection on the dataset. 
+
+Based metrics, best choice is the Control model
+
+Future Study: Affect the sigmoid threshold has on the output 
+
+
+## References
+  [1] Detrano R (1988), Heart Disease Data Set, V.A. Medical Center, Long Beach and Cleveland Clinic Foundation, Retrieved from https://archive.ics.uci.edu/ml/datasets/Heart+Disease.
+  
+  [2] Masías, Víctor Hugo & Valle, Mauricio & Morselli, Carlo & Crespo, Fernando & Vargas Schüler, Augusto & Laengle, Sigifredo. (2016). Modeling Verdict Outcomes Using Social Network Measures: The Watergate and Caviar Network Cases. PloS one. 11. e0147248. 10.1371/journal.pone.0147248. 
+  
+  [3] Bethel, G. B., Rajinikanth, T., PhD, & Raju, S. V., PhD. (2016). A Knowledge driven Approach for Efficient Analysis of Heart Disease Dataset. International Journal of Computer Applications, 147(9), 39-46. doi:10.5120/ijca2016911187
+
+
